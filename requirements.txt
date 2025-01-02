@@ -1,0 +1,7 @@
+flask
+gensim
+scikit-learn
+python-dotenv
+Flask-SQLAlchemy
+Flask-Cors
+gunicorn

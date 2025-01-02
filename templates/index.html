@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contexto - Word Guessing Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Contexto</h1>
+            <div class="stats">
+                <span>Daily #<span id="dailyNumber">-</span></span>
+                <span>Players today: <span id="totalPlayers">-</span></span>
+            </div>
+        </header>
+
+        <main>
+            <div class="game-container">
+                <div class="input-container">
+                    <input type="text" id="guessInput" placeholder="Enter your guess..." autocomplete="off">
+                    <button id="submitGuess">Guess</button>
+                    <button id="giveUpButton" class="give-up-button">Give Up</button>
+                </div>
+
+                <div class="guesses-container">
+                    <div class="guesses-header">
+                        <span>Word</span>
+                        <span>Similarity</span>
+                    </div>
+                    <div id="guessesList"></div>
+                </div>
+            </div>
+
+            <div class="tutorial" id="tutorial">
+                <h2>How to Play</h2>
+                <p>Try to guess the secret word! After each guess, you'll see how similar your word is to the target word.</p>
+                <p>The similarity score ranges from -1 to 1:</p>
+                <ul>
+                    <li>1.0 = Exact match (you won!)</li>
+                    <li>High score = Very similar meaning</li>
+                    <li>Low score = Different meaning</li>
+                </ul>
+                <button id="closeTutorial">Got it!</button>
+            </div>
+        </main>
+
+        <div id="notification" class="notification"></div>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
