@@ -3,17 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contexto - Word Guessing Game</title>
+    <title>Contexto - AI vs Human Word Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Audio elements -->
+    <audio id="humanTurnSound" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/human_turn.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="aiTurnSound" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/ai_turn.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="correctSound" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="closeSound" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/close.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="farSound" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/far.mp3') }}" type="audio/mpeg">
+    </audio>
+
+    <div class="game-background"></div>
+    
     <div class="container">
         <header>
-            <h1>Contexto</h1>
+            <h1>
+                <span class="title-word">Contexto:</span>
+                <span class="title-highlight">Human vs AI</span>
+            </h1>
             <div class="stats">
-                <span>Daily #<span id="dailyNumber">-</span></span>
-                <span>Players today: <span id="totalPlayers">-</span></span>
+                <div class="stat-item">
+                    <i class="fas fa-hashtag"></i>
+                    <span>Daily #<span id="dailyNumber">-</span></span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-users"></i>
+                    <span>Players today: <span id="totalPlayers">-</span></span>
+                </div>
             </div>
         </header>
 
@@ -23,36 +52,74 @@
                     <div class="eye left"></div>
                     <div class="eye right"></div>
                 </div>
+                
+                <div class="turn-indicator" id="turnIndicator">
+                    <div class="turn-content">
+                        <i class="fas fa-user human-icon"></i>
+                        <span class="turn-text">Your Turn!</span>
+                        <i class="fas fa-robot ai-icon"></i>
+                    </div>
+                    <div class="ai-thinking">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
+                
                 <div class="input-container">
-                    <input type="text" id="guessInput" placeholder="Enter your guess..." autocomplete="off">
-                    <button id="submitGuess">Guess</button>
-                    <button id="giveUpButton" class="give-up-button">Give Up</button>
+                    <div class="input-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="guessInput" placeholder="Enter your guess..." autocomplete="off">
+                    </div>
+                    <button id="submitGuess" class="primary-button">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Guess</span>
+                    </button>
+                    <button id="giveUpButton" class="give-up-button">
+                        <i class="fas fa-flag"></i>
+                        <span>Give Up</span>
+                    </button>
                 </div>
 
                 <div class="guesses-container">
                     <div class="guesses-header">
-                        <span>Word</span>
-                        <span>Similarity</span>
+                        <span><i class="fas fa-font"></i> Word</span>
+                        <span><i class="fas fa-user-circle"></i> Player</span>
+                        <span><i class="fas fa-chart-line"></i> Rank</span>
                     </div>
-                    <div id="guessesList"></div>
+                    <div id="guessesList" class="guesses-list"></div>
                 </div>
             </div>
 
             <div class="tutorial" id="tutorial">
-                <h2>How to Play</h2>
-                <p>Try to guess the secret word! After each guess, you'll see how similar your word is to the target word.</p>
-                <p>The similarity score ranges from -1 to 1:</p>
-                <ul>
-                    <li>1.0 = Exact match (you won!)</li>
-                    <li>High score = Very similar meaning</li>
-                    <li>Low score = Different meaning</li>
-                </ul>
-                <button id="closeTutorial">Got it!</button>
+                <div class="tutorial-content">
+                    <h2><i class="fas fa-graduation-cap"></i> How to Play</h2>
+                    <p>Try to guess the secret word before the AI does! You'll take turns with the AI making guesses.</p>
+                    <p>After each guess, you'll see how close your word is to the target word.</p>
+                    <div class="rank-explanation">
+                        <div class="rank-item">
+                            <div class="rank-color correct"></div>
+                            <span>#1 = Exact match (you won!)</span>
+                        </div>
+                        <div class="rank-item">
+                            <div class="rank-color close"></div>
+                            <span>Low number = Very close</span>
+                        </div>
+                        <div class="rank-item">
+                            <div class="rank-color far"></div>
+                            <span>High number = Far away</span>
+                        </div>
+                    </div>
+                    <button id="closeTutorial" class="primary-button">
+                        <i class="fas fa-check"></i>
+                        <span>Got it!</span>
+                    </button>
+                </div>
             </div>
         </main>
-
-        <div id="notification" class="notification"></div>
     </div>
+
+    <div id="notification" class="notification"></div>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

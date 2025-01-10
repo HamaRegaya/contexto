@@ -1,55 +1,139 @@
-from gensim.models import KeyedVectors
-from sklearn.metrics.pairwise import cosine_similarity
-import os
+from flask import Flask, jsonify, request
+import random
+from datetime import datetime, timedelta
 import numpy as np
+from LLM import llm
+from langchain_core.messages import HumanMessage
 
-# Path to the saved model
-MODEL_PATH = "glove-wiki-gigaword-50.model"
+app = Flask(__name__)
 
-# Load the model - only do this once
-model = None
-
-def load_model():
-    global model
-    if model is not None:
-        return model
+class Game:
+    def __init__(self):
+        self.target_word = None
+        self.human_guesses = []
+        self.ai_guesses = []
+        self.game_over = False
+        self.winner = None
+        self.current_turn = 'human'  # 'human' or 'ai'
+        
+        # Load word embeddings
+        self.word_embeddings = np.load('word_embeddings.npy', allow_pickle=True).item()
+        self.words = list(self.word_embeddings.keys())
+        
+    def start_new_game(self):
+        self.target_word = random.choice(self.words)
+        self.human_guesses = []
+        self.ai_guesses = []
+        self.game_over = False
+        self.winner = None
+        self.current_turn = 'human'
+        return self.target_word
     
-    if os.path.exists(MODEL_PATH):
-        print("Loading the model from local storage...")
-        model = KeyedVectors.load(MODEL_PATH)
-        # Preload vectors into memory for faster access
-        model.fill_norms()
-        print("Model loaded successfully!")
-        return model
-    else:
-        raise FileNotFoundError(f"Model file '{MODEL_PATH}' not found.")
-
-def calculate_word_similarity(model, word1, word2):
-    try:
-        # Using numpy's dot product and norm is faster than sklearn's cosine_similarity
-        return np.dot(model[word1], model[word2]) / (np.linalg.norm(model[word1]) * np.linalg.norm(model[word2]))
-    except KeyError as e:
-        return f"Word not found in vocabulary: {str(e)}"
-
-def main():
-    model = load_model()
+    def calculate_similarity(self, word1, word2):
+        if word1 not in self.word_embeddings or word2 not in self.word_embeddings:
+            return 0.0
+        vec1 = self.word_embeddings[word1]
+        vec2 = self.word_embeddings[word2]
+        return float(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
     
-    while True:
-        try:
-            word1 = input("Enter the first word (or 'q' to quit): ").lower().strip()
-            if word1 == 'q':
-                break
-                
-            word2 = input("Enter the second word: ").lower().strip()
-            
-            similarity_score = calculate_word_similarity(model, word1, word2)
-            if isinstance(similarity_score, str):
-                print(similarity_score)
-            else:
-                print(f"Similarity: {similarity_score:.4f}")
-                
-        except KeyboardInterrupt:
-            break
+    def make_ai_guess(self):
+        # Create context from previous guesses
+        context = "Previous guesses and their similarities:\n"
+        for guess, similarity in self.human_guesses + self.ai_guesses:
+            context += f"{guess}: {similarity}\n"
+        
+        # Ask AI for a guess
+        prompt = f"{context}\nBased on these similarities, what single word do you think is closest to the target word? Respond with just the word, no punctuation or explanation."
+        messages = [HumanMessage(content=prompt)]
+        response = llm.invoke(messages)
+        ai_guess = response.content.strip().lower()
+        
+        # Calculate similarity and add to guesses
+        similarity = self.calculate_similarity(ai_guess, self.target_word)
+        self.ai_guesses.append((ai_guess, similarity))
+        
+        # Check if AI won
+        if ai_guess == self.target_word:
+            self.game_over = True
+            self.winner = 'ai'
+        
+        self.current_turn = 'human'
+        return ai_guess, similarity
+    
+    def make_human_guess(self, guess):
+        guess = guess.lower().strip()
+        similarity = self.calculate_similarity(guess, self.target_word)
+        self.human_guesses.append((guess, similarity))
+        
+        # Check if human won
+        if guess == self.target_word:
+            self.game_over = True
+            self.winner = 'human'
+        
+        self.current_turn = 'ai'
+        return similarity
 
-if __name__ == "__main__":
-    main()
+game = Game()
+
+@app.route('/api/start', methods=['POST'])
+def start_game():
+    target_word = game.start_new_game()
+    return jsonify({
+        'status': 'success',
+        'message': 'New game started'
+    })
+
+@app.route('/api/guess', methods=['POST'])
+def make_guess():
+    data = request.get_json()
+    guess = data.get('guess', '').lower().strip()
+    
+    if game.game_over:
+        return jsonify({
+            'status': 'error',
+            'message': 'Game is already over'
+        })
+    
+    if game.current_turn != 'human':
+        return jsonify({
+            'status': 'error',
+            'message': 'Not your turn'
+        })
+    
+    # Process human guess
+    similarity = game.make_human_guess(guess)
+    
+    response_data = {
+        'status': 'success',
+        'similarity': similarity,
+        'human_guesses': game.human_guesses,
+        'ai_guesses': game.ai_guesses,
+        'game_over': game.game_over,
+        'winner': game.winner
+    }
+    
+    # If game is not over, make AI guess
+    if not game.game_over:
+        ai_guess, ai_similarity = game.make_ai_guess()
+        response_data.update({
+            'ai_guess': ai_guess,
+            'ai_similarity': ai_similarity,
+            'game_over': game.game_over,
+            'winner': game.winner
+        })
+    
+    return jsonify(response_data)
+
+@app.route('/api/give-up', methods=['POST'])
+def give_up():
+    game.game_over = True
+    game.winner = 'ai'
+    return jsonify({
+        'status': 'success',
+        'target_word': game.target_word,
+        'game_over': True,
+        'winner': 'ai'
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True)
