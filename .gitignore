@@ -1,1 +1,47 @@
-/.venv
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+.env.*
+
+# Flask-specific
+instance/
+*.sqlite3
+*.db
+
+# Pytest
+.cache/
+
+# Virtual environments
+venv/
+ENV/
+.venv/
+
+# Logs
+*.log
+logs/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+
+# PyCharm project files
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+target/
+
+# VSCode
+.vscode/
