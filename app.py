@@ -1,17 +1,11 @@
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 import random
 import numpy as np
 from gensim.models import KeyedVectors
 from langchain.schema import HumanMessage
-from LLM import llm  # Import the existing LLM
-from dotenv import load_dotenv
-import gensim.downloader as api
-
-# Load environment variables
-load_dotenv()
+from LLM import llm
 
 app = Flask(__name__)
 CORS(app)
@@ -34,30 +28,21 @@ class GameState:
         self.game_over = False
         self.winner = None
 
+# Static list of simple words to guess
+TARGET_WORDS = [
+    'house', 'table', 'chair', 'book', 'phone',
+    'water', 'bread', 'shoes', 'clock', 'door',
+    'paper', 'glass', 'plate', 'shirt', 'light',
+    'music', 'plant', 'apple', 'knife', 'spoon',
+    'pencil', 'window', 'bottle', 'flower', 'camera',
+    'pillow', 'coffee', 'mirror', 'carpet', 'picture'
+]
+
 game_state = GameState()
 
 def generate_easy_word():
-    """Generate an easy-to-guess common word using LLM"""
-    prompt = """Act as a word generator. Generate a single, easy-to-guess common word that would be good for a word guessing game. Requirements:
-    1. Must be a common noun that everyone knows (like 'table', 'book', 'house')
-    2. Must be concrete, not abstract
-    3. Must be a physical object people can see and touch
-    4. Must be a single word (no spaces or hyphens)
-    5. Must not be a proper noun
-    6. Must be between 4-8 letters
-    7. Must be a word that exists in common English vocabulary
-    
-    Respond with ONLY the word in lowercase, no punctuation or explanation."""
-    
-    messages = [HumanMessage(content=prompt)]
-    response = llm.invoke(messages)
-    word = response.content.strip().lower()
-    
-    # Ensure the word exists in our model's vocabulary
-    while word not in model.key_to_index:
-        messages = [HumanMessage(content=prompt + "\nThe previous word was not in our vocabulary. Please try another word.")]
-        response = llm.invoke(messages)
-        word = response.content.strip().lower()
+    """Select a random word from our predefined list"""
+    word = random.choice(TARGET_WORDS)
     
     # Print the word in the terminal for debugging/testing
     print("\n" + "="*50)
