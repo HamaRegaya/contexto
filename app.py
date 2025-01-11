@@ -18,7 +18,7 @@ CORS(app)
 
 # Load word embeddings model
 print("Loading word embeddings model...")
-model = KeyedVectors.load('glove-wiki-gigaword-50.model')
+model = KeyedVectors.load('glove-wiki-gigaword-300.model')
 word_vectors = model.vectors
 print("Model loaded!")
 

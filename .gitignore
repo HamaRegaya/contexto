@@ -45,3 +45,7 @@ target/
 
 # VSCode
 .vscode/
+
+# glove embeddings
+glove-wiki-gigaword-300.model
+glove-wiki-gigaword-300.model.vectors.npy
