@@ -35,15 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showNotification(message, isError = false) {
+    function showNotification(message, isError = false, duration = 3000) {
         notification.textContent = message;
-        notification.style.backgroundColor = isError ? '#ffebee' : '#e8f5e9';
-        notification.style.color = isError ? '#c62828' : '#2e7d32';
-        notification.classList.add('show');
+        notification.className = isError ? 'notification error' : 'notification success';
+        notification.style.display = 'block';
         
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+        // Only set timeout if duration is greater than 0
+        if (duration > 0) {
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
     }
 
     function getRankClass(rank) {
@@ -254,6 +256,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error giving up:', error);
             showNotification('Failed to give up', true);
+        }
+    }
+
+    async function handleAIGuess() {
+        try {
+            const response = await fetch('/api/ai_guess');
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                const { word, rank } = data;
+                lastAIGuessWord = word;
+                addGuessToList(word, rank, true);
+                
+                if (rank === 1) {
+                    // AI won
+                    gameOver = true;
+                    guessInput.disabled = true;
+                    submitButton.disabled = true;
+                    showNotification(`AI wins! The word was "${word}"`, false, 0);  // Keep notification visible
+                    playSound('correctSound');
+                } else {
+                    isHumanTurn = true;
+                    updateTurnIndicator();
+                    playSound('humanTurnSound');
+                }
+            }
+        } catch (error) {
+            console.error('Error during AI guess:', error);
+            showNotification('Error during AI turn', true);
         }
     }
 
