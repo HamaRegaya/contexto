@@ -126,11 +126,15 @@ def serve_index():
 
 @app.route('/api/start', methods=['POST'])
 def start_game():
-    initialize_daily_word()
-    return jsonify({
-        'status': 'success',
-        'message': 'New game started'
-    })
+    # Always generate a new word when starting/restarting
+    game_state.target_word = generate_easy_word()
+    game_state.human_guesses = []
+    game_state.ai_guesses = []
+    game_state.current_turn = 'human'
+    game_state.game_over = False
+    game_state.winner = None
+    
+    return jsonify({'status': 'success'})
 
 @app.route('/api/guess', methods=['POST'])
 def make_guess():

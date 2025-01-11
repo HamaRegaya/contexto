@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const guessInput = document.getElementById('guessInput');
     const submitButton = document.getElementById('submitGuess');
     const giveUpButton = document.getElementById('giveUpButton');
+    const restartButton = document.getElementById('restartButton');
     const guessesList = document.getElementById('guessesList');
     const notification = document.getElementById('notification');
     const turnIndicator = document.getElementById('turnIndicator');
@@ -128,9 +129,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 isHumanTurn = true;
                 gameOver = false;
                 allGuesses = []; // Reset guesses array
+                lastAIGuessWord = null; // Reset last AI guess
                 guessesList.innerHTML = '';
+                guessInput.disabled = false;
+                submitButton.disabled = false;
+                guessInput.value = '';
                 updateTurnIndicator();
-                showNotification('New game started!');
+                showNotification('New game started with a new target word!');
             }
         } catch (error) {
             console.error('Error starting new game:', error);
@@ -261,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     submitButton.addEventListener('click', handleSubmit);
     giveUpButton.addEventListener('click', handleGiveUp);
+    restartButton.addEventListener('click', startNewGame);
     
     guessInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
