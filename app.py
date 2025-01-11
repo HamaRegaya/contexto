@@ -240,8 +240,15 @@ def make_ai_guess():
     
     # Take only the 10 most relevant guesses to avoid context overload
     relevant_guesses = sorted_guesses[:10]
-    
-    context = "Previous guesses and their ranks (lower is better):\n"
+    context = '''
+    Similarity scale:
+    1.0 → Rank 1      (exact match)
+    0.9 → Rank ~100   (very close)
+    0.7 → Rank ~500   (somewhat close)
+    0.5 → Rank ~3000  (moderately different)
+    0.3 → Rank ~7000  (quite different)
+    0.1 → Rank ~9999  (very different)\n'''
+    context += "Previous guesses and their ranks (lower is better):\n"
     for guess, rank in relevant_guesses:
         context += f"{guess} (rank {rank})\n"
     
