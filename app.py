@@ -163,6 +163,11 @@ def make_guess():
     if game_state.current_turn != 'human':
         return jsonify({'status': 'error', 'message': 'Not your turn'})
     
+    # Check if word has been guessed before
+    used_words = {guess[0] for guess in game_state.human_guesses + game_state.ai_guesses}
+    if guess in used_words:
+        return jsonify({'status': 'error', 'message': 'Word has already been guessed'})
+    
     rank = calculate_similarity(guess, game_state.target_word)
     
     if rank is None:
@@ -187,6 +192,24 @@ def make_guess():
     # Make AI guess
     game_state.current_turn = 'ai'
     ai_guess, ai_rank = make_ai_guess()
+    
+    # If AI couldn't make a valid guess, switch back to human turn
+    if ai_guess is None:
+        game_state.current_turn = 'human'
+        return jsonify({
+            'status': 'success',
+            'rank': rank,
+            'human_guesses': game_state.human_guesses,
+            'ai_guesses': game_state.ai_guesses,
+            'game_over': game_state.game_over,
+            'winner': game_state.winner,
+            'ai_guess': None,
+            'ai_rank': None
+        })
+    
+    # Always switch back to human turn after AI's guess (unless game is over)
+    if not game_state.game_over:
+        game_state.current_turn = 'human'
     
     return jsonify({
         'status': 'success',
@@ -220,27 +243,40 @@ def get_stats():
 
 def make_ai_guess():
     # Get all previously used words
-    used_words = set(guess[0] for guess in game_state.human_guesses + game_state.ai_guesses)
+    used_words = {guess[0] for guess in game_state.human_guesses + game_state.ai_guesses}
     
-    # Create context from previous guesses
+    # Create context from previous guesses, sorted by rank to help AI understand the pattern
+    all_guesses = game_state.human_guesses + game_state.ai_guesses
+    sorted_guesses = sorted(all_guesses, key=lambda x: x[1])  # Sort by rank
+    
+    # Take only the 10 most relevant guesses to avoid context overload
+    relevant_guesses = sorted_guesses[:10]
+    
     context = "Previous guesses and their ranks (lower is better):\n"
-    for guess, rank in game_state.human_guesses + game_state.ai_guesses:
-        context += f"{guess}: {rank}\n"
+    for guess, rank in relevant_guesses:
+        context += f"{guess} (rank {rank})\n"
+    
+    if sorted_guesses:
+        best_rank = sorted_guesses[0][1]
+        context += f"\nThe best guess so far had rank {best_rank}. Try to find a word that would get an even better rank."
     
     # Add instruction to avoid used words
     context += "\nDo not use any of these words that have already been guessed: " + ", ".join(used_words)
     
-    # Ask AI for a guess
-    prompt = f"{context}\n\nBased on these ranks (lower is better, 1 is correct), what single word do you think is closest to the target word? The word must NOT be one that has already been guessed. Respond with just the word, no punctuation or explanation."
+    # Ask AI for a guess with more specific instructions
+    prompt = f"{context}\n\nBased on these ranks (lower is better, 1 is correct), suggest a single word that you think is closest to the target word. Requirements:\n1. Must be a common English word\n2. Must NOT be any word that has been guessed before\n3. Should try to get a better rank than {best_rank if sorted_guesses else 'previous guesses'}\n\nRespond with just the word, no punctuation or explanation."
     
-    max_attempts = 3
+    max_attempts = 5  # Increased attempts
     for attempt in range(max_attempts):
         messages = [HumanMessage(content=prompt)]
         response = llm.invoke(messages)
         ai_guess = response.content.strip().lower()
         
-        # Check if the word has been used before
-        if ai_guess not in used_words:
+        # Validate the guess
+        if (ai_guess not in used_words and 
+            ai_guess in model.key_to_index and 
+            len(ai_guess) >= 2):  # Basic validation
+            
             # Calculate similarity and add to guesses
             rank = calculate_similarity(ai_guess, game_state.target_word)
             if rank is not None:
@@ -251,12 +287,12 @@ def make_ai_guess():
                     game_state.game_over = True
                     game_state.winner = 'ai'
                 
-                game_state.current_turn = 'human'
                 return ai_guess, rank
-            
+        
         # If we get here, either the word was used or invalid
         # Add to the context to explicitly tell the AI not to use this word
         context += f"\nDo not use '{ai_guess}' as it has already been guessed or is invalid."
+        prompt = context + "\n\nTry another word. Respond with just the word, no punctuation or explanation."
     
     # If we've exhausted all attempts, return None
     return None, None
