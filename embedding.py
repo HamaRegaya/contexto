@@ -53,7 +53,7 @@ def main():
                         format="%(levelname)s: %(message)s")
 
     model_id = "amazon.titan-embed-text-v2:0"
-    input_texts = ["prince", "princess"]
+    input_texts = ["house", "kitchen"]
 
     embeddings_results = []
     for input_text in input_texts:
