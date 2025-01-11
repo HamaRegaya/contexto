@@ -645,7 +645,7 @@ h3 {
     top: -36px;
     left: 50%;
     transform: translateX(-50%);
-    background: #1976d2;
+    background: var(--dark-primary);;
     padding: 8px 20px;
     border-radius: 8px 8px 0 0;
     display: flex;
@@ -854,4 +854,29 @@ h3 {
 
 .player-indicator.ai i {
     color: #ffffff;
+}
+
+.guess-item .player.ai-player {
+    color: inherit;
+    font-style: italic;
+}
+
+/* Special styling for AI's last guess */
+.guess-item.ai-last-guess {
+    border-left: 4px solid #7b1fa2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.guess-item.ai-last-guess::before {
+    content: "Last AI Guess";
+    position: absolute;
+    right: 8px;
+    top: -8px;
+    font-size: 0.7em;
+    background: #7b1fa2;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
 }

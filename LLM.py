@@ -21,16 +21,16 @@ try:
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
     )
 
-    # Create message
-    messages = [
-        HumanMessage(content="what's the capital of Tunisia in one word without ponctuation ?")
-    ]
+    # # Create message
+    # messages = [
+    #     HumanMessage(content="what's the capital of Tunisia in one word without ponctuation ?")
+    # ]
 
-    # Get response
-    response = llm.invoke(messages)
+    # # Get response
+    # response = llm.invoke(messages)
     
-    # Print response
-    print("Response:", response.content)
+    # # Print response
+    # print("Response:", response.content)
 
 except ClientError as e:
     print(f"AWS Error: {e}")

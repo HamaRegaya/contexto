@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isHumanTurn = true;
     let gameOver = false;
     let allGuesses = [];
+    let lastAIGuessWord = null;  // Track the last AI guess word
 
     // Show tutorial if it's the user's first visit
     if (!localStorage.getItem('tutorialSeen')) {
@@ -45,10 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getRankClass(rank) {
-        // Convert rank (1-100000) to percentile (0-100)
-        const percentile = Math.floor((rank / 100000) * 100);
-        // Map percentile to one of our 11 color classes (0-100 in steps of 10)
-        const colorClass = Math.min(Math.floor(percentile / 10) * 10, 100);
+        if (rank === 1) return 'rank-0';  // Correct answer gets rank-0 (green)
+        
+        // For ranks 2-5000, scale from 10-100
+        // Lower ranks should get lower numbers (greener colors)
+        // We use 5000 as a threshold for the worst rank to make the color gradient more visible
+        const threshold = 5000;
+        const normalizedRank = Math.min(rank, threshold);
+        const scaledValue = ((normalizedRank - 1) / (threshold - 1)) * 90;
+        const colorClass = Math.min(Math.floor(scaledValue / 10) * 10 + 10, 100);
+        
         return `rank-${colorClass}`;
     }
 
@@ -63,15 +70,20 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             playSound('farSound');
         }
-        return `#${rank.toLocaleString()}`;
+        return `${rank.toLocaleString()}`;
     }
 
     function addGuessToList(word, rank, isAI = false, isCorrect = false) {
+        // Update last AI guess if this is an AI guess
+        if (isAI) {
+            lastAIGuessWord = word;
+        }
+        
         // Add to our guesses array
         allGuesses.push({ word, rank, isAI, isCorrect });
         
-        // Sort guesses by rank (worst to best)
-        allGuesses.sort((a, b) => b.rank - a.rank);
+        // Sort guesses by rank (best to worst)
+        allGuesses.sort((a, b) => a.rank - b.rank);
         
         // Clear the list
         guessesList.innerHTML = '';
@@ -81,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const listItem = document.createElement('div');
             listItem.className = `guess-item ${getRankClass(guess.rank)}`;
             if (guess.isCorrect) listItem.classList.add('correct');
+            if (isAI && guess.word === lastAIGuessWord) listItem.classList.add('ai-last-guess');
             
             const wordSpan = document.createElement('span');
             wordSpan.className = 'word';
@@ -255,89 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    function updateLeaderboard(word, rank, isHuman) {
-        const leaderboardList = document.getElementById('leaderboard-list');
-        const existingItem = Array.from(leaderboardList.children).find(item => 
-            item.querySelector('.word-text').textContent === word
-        );
-
-        if (existingItem) {
-            return; // Word already in leaderboard
-        }
-
-        const li = document.createElement('li');
-        li.className = 'leaderboard-item';
-        
-        // Calculate progress percentage (inverted since lower rank is better)
-        // Using 9999 as max rank, 1 as min rank
-        const progressPercent = 100 - ((rank - 1) / (9999 - 1)) * 100;
-        
-        // Determine background and text colors based on rank
-        let bgColor, textColor;
-        if (rank === 1) {
-            bgColor = '#1b5e20'; // Dark green for correct
-            textColor = '#ffffff';
-        } else if (rank <= 100) {
-            bgColor = '#2e7d32'; // Green
-            textColor = '#ffffff';
-        } else if (rank <= 500) {
-            bgColor = '#388e3c'; // Light green
-            textColor = '#ffffff';
-        } else if (rank <= 1000) {
-            bgColor = '#ffa000'; // Amber
-            textColor = '#ffffff';
-        } else if (rank <= 3000) {
-            bgColor = '#f57c00'; // Dark orange
-            textColor = '#ffffff';
-        } else if (rank <= 5000) {
-            bgColor = '#e64a19'; // Deep orange
-            textColor = '#ffffff';
-        } else if (rank <= 7000) {
-            bgColor = '#d32f2f'; // Red
-            textColor = '#ffffff';
-        } else {
-            bgColor = '#b71c1c'; // Dark red
-            textColor = '#ffffff';
-        }
-
-        li.style.backgroundColor = bgColor;
-        li.style.color = textColor;
-
-        li.innerHTML = `
-            <div class="word-info">
-                <span class="word-text">${word}</span>
-                <span class="player-indicator ${isHuman ? 'human' : 'ai'}">
-                    <i class="fas ${isHuman ? 'fa-user' : 'fa-robot'}"></i>
-                </span>
-                <span class="rank" style="color: ${textColor}">#${rank}</span>
-            </div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: ${progressPercent}%; background-color: rgba(255, 255, 255, 0.3)"></div>
-            </div>
-        `;
-
-        // Find the correct position to insert the new item (sorted by rank)
-        const items = Array.from(leaderboardList.children);
-        const insertIndex = items.findIndex(item => {
-            const itemRank = parseInt(item.querySelector('.rank').textContent.slice(1));
-            return rank < itemRank;
-        });
-
-        if (insertIndex === -1) {
-            leaderboardList.appendChild(li); // Add to end if no better position found
-        } else {
-            leaderboardList.insertBefore(li, items[insertIndex]);
-        }
-
-        // Play appropriate sound based on rank
-        if (rank === 1) {
-            playSound('correct');
-        } else if (rank <= 500) {
-            playSound('close');
-        } else {
-            playSound('far');
-        }
-    }
 
     // Start a new game when the page loads
     startNewGame();
