@@ -51,12 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function getRankClass(rank) {
         if (rank === 1) return 'rank-0';  // Correct answer gets rank-0 (green)
         
-        // For ranks 2-5000, scale from 10-100
+        // For ranks 2-1000, scale from 10-100
         // Lower ranks should get lower numbers (greener colors)
-        // We use 5000 as a threshold for the worst rank to make the color gradient more visible
-        const threshold = 5000;
-        const normalizedRank = Math.min(rank, threshold);
-        const scaledValue = ((normalizedRank - 1) / (threshold - 1)) * 90;
+        const maxRank = 1000;
+        const normalizedRank = Math.min(rank, maxRank);
+        const scaledValue = ((normalizedRank - 1) / (maxRank - 1)) * 90;
         const colorClass = Math.min(Math.floor(scaledValue / 10) * 10 + 10, 100);
         
         return `rank-${colorClass}`;

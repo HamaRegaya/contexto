@@ -76,32 +76,24 @@ def convert_similarity_to_rank(similarity):
     """Convert similarity score to a ranking number using the following scale:
     1.0 → Rank 1      (exact match)
     0.9 → Rank ~100   (very close)
-    0.7 → Rank ~500   (somewhat close)
-    0.5 → Rank ~3000  (moderately different)
-    0.3 → Rank ~7000  (quite different)
-    0.1 → Rank ~9999  (very different)
+    0.7 → Rank ~300   (somewhat close)
+    0.5 → Rank ~500   (moderately different)
+    0.3 → Rank ~700   (quite different)
+    0.1 → Rank ~900   (very different)
     """
-    if similarity >= 1.0:  # Exact match
+    # Ensure similarity is between 0 and 1
+    similarity = max(0.0, min(1.0, similarity))
+    
+    if similarity == 1.0:
         return 1
     
-    # Normalize similarity from [-1, 1] to [0, 1]
-    normalized = (similarity + 1) / 2
+    # Convert to rank between 1 and 1000 (inverted)
+    rank = int(1000 - (similarity * 1000))
     
-    if normalized >= 0.95:  # Very close matches
-        # Scale linearly from 1 to 100
-        return int(1 + (100 - 1) * (1 - normalized) / 0.05)
-    elif normalized >= 0.85:  # Close matches
-        # Scale from 100 to 500
-        return int(100 + (500 - 100) * (0.95 - normalized) / 0.1)
-    elif normalized >= 0.6:  # Somewhat close
-        # Scale from 500 to 3000
-        return int(500 + (3000 - 500) * (0.85 - normalized) / 0.25)
-    elif normalized >= 0.4:  # Moderately different
-        # Scale from 3000 to 7000
-        return int(3000 + (7000 - 3000) * (0.6 - normalized) / 0.2)
-    else:  # Quite different to very different
-        # Scale from 7000 to 9999
-        return int(7000 + (9999 - 7000) * (0.4 - normalized) / 0.4)
+    # Ensure rank is at least 2 (since 1 is reserved for exact match)
+    rank = max(2, rank)
+    
+    return rank
 
 def calculate_similarity(word1, word2):
     """Calculate semantic similarity between two words and convert to rank"""
@@ -116,7 +108,7 @@ def calculate_similarity(word1, word2):
         # Convert to rank
         rank = convert_similarity_to_rank(float(similarity))
         
-        return rank
+        return rank, float(similarity)
     except KeyError:
         return None
 
@@ -126,8 +118,9 @@ def serve_index():
 
 @app.route('/api/start', methods=['POST'])
 def start_game():
-    # Always generate a new word when starting/restarting
-    game_state.target_word = generate_easy_word()
+    initialize_daily_word()  # Initialize or get the daily word
+    
+    # Reset game state
     game_state.human_guesses = []
     game_state.ai_guesses = []
     game_state.current_turn = 'human'
@@ -138,8 +131,6 @@ def start_game():
 
 @app.route('/api/guess', methods=['POST'])
 def make_guess():
-    initialize_daily_word()
-    
     data = request.get_json()
     guess = data.get('guess', '').lower()
     
@@ -156,14 +147,14 @@ def make_guess():
     used_words = {guess[0] for guess in game_state.human_guesses + game_state.ai_guesses}
     if guess in used_words:
         return jsonify({'status': 'error', 'message': 'Word has already been guessed'})
-    
-    rank = calculate_similarity(guess, game_state.target_word)
+    rank, similarity = calculate_similarity(guess, game_state.target_word)
+    print("Guess:"+ guess + " similarity:" + str(similarity))
     
     if rank is None:
         return jsonify({'status': 'error', 'message': 'Invalid word'})
     
     # Add human guess
-    game_state.human_guesses.append((guess, rank))
+    game_state.human_guesses.append((guess, rank, float(similarity)))
     
     # Check if human won
     if guess == game_state.target_word:
@@ -233,34 +224,29 @@ def get_stats():
 def make_ai_guess():
     # Get all previously used words
     used_words = {guess[0] for guess in game_state.human_guesses + game_state.ai_guesses}
-    
+    print("Used words:", used_words)
     # Create context from previous guesses, sorted by rank to help AI understand the pattern
     all_guesses = game_state.human_guesses + game_state.ai_guesses
-    sorted_guesses = sorted(all_guesses, key=lambda x: x[1])  # Sort by rank
+    sorted_guesses = sorted(all_guesses, key=lambda x: x[1])  # Sort by rank (second element)
+    print("sorted guesses:", sorted_guesses)
     
     # Take only the 10 most relevant guesses to avoid context overload
     relevant_guesses = sorted_guesses[:10]
+    print("relevant guesses:", relevant_guesses)
+    context = " "
     context = '''
-    Similarity scale:
-    1.0 → Rank 1      (exact match)
-    0.9 → Rank ~100   (very close)
-    0.7 → Rank ~500   (somewhat close)
-    0.5 → Rank ~3000  (moderately different)
-    0.3 → Rank ~7000  (quite different)
-    0.1 → Rank ~9999  (very different)\n'''
-    context += "Previous guesses and their ranks (lower is better):\n"
-    for guess, rank in relevant_guesses:
-        context += f"{guess} (rank {rank})\n"
-    
-    if sorted_guesses:
-        best_rank = sorted_guesses[0][1]
-        context += f"\nThe best guess so far had rank {best_rank}. Try to find a word that would get an even better rank."
+    This is like the Contexto word guessing game. You need to guess a target word based on semantic similarity.
+    Each guess gets a similarity score from 0 to 1 \n'''
+    context += "Previous guesses and their similarities (higher is better):\n"
+    for guess, rank, similarity in relevant_guesses:
+        context += f"{guess} (similarity {similarity:.3f})\n"
+    print("context:", context)
     
     # Add instruction to avoid used words
     context += "\nDo not use any of these words that have already been guessed: " + ", ".join(used_words)
     
     # Ask AI for a guess with more specific instructions
-    prompt = f"{context}\n\nBased on these ranks (lower is better, 1 is correct), suggest a single word that you think is closest to the target word. Requirements:\n1. Must be a common English word\n2. Must NOT be any word that has been guessed before\n3. Should try to get a better rank than {best_rank if sorted_guesses else 'previous guesses'}\n\nRespond with just the word, no punctuation or explanation."
+    prompt = f"{context}\n\nBased on these similarities (higher is better, 1 is correct), suggest a single word that you think is closest to the target word. Requirements:\n1. Must be a common English word\n2. Must NOT be any word that has been guessed before\n3. Should try to get a better similarity than {sorted_guesses[0][2] if sorted_guesses else 'previous guesses'}\n\nRespond with just the word, no punctuation or explanation."
     
     max_attempts = 5  # Increased attempts
     for attempt in range(max_attempts):
@@ -274,9 +260,10 @@ def make_ai_guess():
             len(ai_guess) >= 2):  # Basic validation
             
             # Calculate similarity and add to guesses
-            rank = calculate_similarity(ai_guess, game_state.target_word)
+            rank, similarity = calculate_similarity(ai_guess, game_state.target_word)
+            print("similarity:", similarity)
             if rank is not None:
-                game_state.ai_guesses.append((ai_guess, rank))
+                game_state.ai_guesses.append((ai_guess, rank, float(similarity)))
                 
                 # Check if AI won
                 if ai_guess == game_state.target_word:
