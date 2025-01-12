@@ -5,7 +5,16 @@ import random
 import numpy as np
 from gensim.models import KeyedVectors
 from langchain.schema import HumanMessage
-from LLM import llm
+from langchain_aws import ChatBedrockConverse
+import json
+from botocore.exceptions import ClientError
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+# Set AWS credentials as environment variables
+os.environ['AWS_ACCESS_KEY_ID'] = os.getenv("ACCESS_KEY_ID")
+os.environ['AWS_SECRET_ACCESS_KEY'] = os.getenv("SECRET_ACCESS_KEY")
 
 app = Flask(__name__)
 CORS(app)
@@ -15,6 +24,30 @@ print("Loading word embeddings model...")
 model = KeyedVectors.load('glove-wiki-gigaword-50.model')
 word_vectors = model.vectors
 print("Model loaded!")
+
+try:
+    # Initialize ChatBedrockConverse
+    llm = ChatBedrockConverse(
+        model="mistral.mistral-7b-instruct-v0:2",
+        temperature=0.7,
+        region_name='eu-west-3'
+    )
+
+    # # Create message
+    # messages = [
+    #     HumanMessage(content="what's the capital of Tunisia in one word without ponctuation ?")
+    # ]
+
+    # # Get response
+    # response = llm.invoke(messages)
+    
+    # # Print response
+    # print("Response:", response.content)
+
+except ClientError as e:
+    print(f"AWS Error: {e}")
+except Exception as e:
+    print(f"Error: {e}")
 
 # Game state
 class GameState:
