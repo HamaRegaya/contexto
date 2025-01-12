@@ -97,7 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
         allGuesses.forEach(guess => {
             const listItem = document.createElement('div');
             listItem.className = `guess-item ${getRankClass(guess.rank)}`;
-            if (guess.isCorrect) listItem.classList.add('correct');
+            if (guess.isCorrect) {
+                listItem.classList.add('correct');
+                if (guess.isAI) {
+                    listItem.classList.add('target-word');
+                }
+            }
             if (isAI && guess.word === lastAIGuessWord) listItem.classList.add('ai-last-guess');
             if (!isAI && guess.word === lastHumanGuessWord) listItem.classList.add('human-last-guess');
             
@@ -225,8 +230,40 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Show game over message if needed
             if (data.game_over) {
-                const winner = data.winner === 'human' ? 'You won!' : 'AI won!';
-                showNotification(winner);
+                if (data.winner === 'ai') {
+                    // AI wins animation and message
+                    showNotification(`AI Wins! The word was "${data.target_word}"`, false, 0);
+                    const gameContainer = document.querySelector('.game-container');
+                    gameContainer.classList.add('ai-wins');
+                    playSound('correctSound');
+                    
+                    // Add shake animation to eyes
+                    const eyes = document.querySelectorAll('.eye');
+                    eyes.forEach(eye => eye.classList.add('ai-win-eye'));
+                    
+                    setTimeout(() => {
+                        gameContainer.classList.remove('ai-wins');
+                        eyes.forEach(eye => eye.classList.remove('ai-win-eye'));
+                    }, 3000);
+
+                    // Add the target word to the list with green highlight
+                    addGuessToList(data.target_word, 1, true, true);
+                } else {
+                    // Human wins animation and message
+                    showNotification('You Won! Congratulations!', false, 0);
+                    const gameContainer = document.querySelector('.game-container');
+                    gameContainer.classList.add('human-wins');
+                    playSound('correctSound');
+                    
+                    // Add animation to eyes
+                    const eyes = document.querySelectorAll('.eye');
+                    eyes.forEach(eye => eye.classList.add('human-win-eye'));
+                    
+                    setTimeout(() => {
+                        gameContainer.classList.remove('human-wins');
+                        eyes.forEach(eye => eye.classList.remove('human-win-eye'));
+                    }, 3000);
+                }
                 guessInput.disabled = true;
                 submitButton.disabled = true;
             }
@@ -252,10 +289,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.status === 'success') {
                 gameOver = true;
-                showNotification(`Game Over! The word was: ${data.target_word}`);
+                showNotification(`Game Over! The word was "${data.target_word}"`, false, 0);
                 guessInput.disabled = true;
                 submitButton.disabled = true;
                 updateTurnIndicator();
+                addGuessToList(data.target_word, 1, true, true);
             }
         } catch (error) {
             console.error('Error giving up:', error);
@@ -263,33 +301,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleAIGuess() {
-        try {
-            const response = await fetch('/api/ai_guess');
-            const data = await response.json();
-
-            if (data.status === 'success') {
-                const { word, rank } = data;
-                lastAIGuessWord = word;
-                addGuessToList(word, rank, true);
+    function handleAIGuess() {
+        if (gameOver || !isHumanTurn) return;
+        
+        fetch('/ai_guess', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ guesses: allGuesses })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('AI guess response:', data);
+            // Check if AI won
+            if (data.ai_rank === 1 || data.winner === 'ai') {
+                console.log('AI won! Adding animations...');
+                // AI wins animation and message
+                showNotification("AI WINS! The word was: " + data.ai_guess, false, 0);
+                const gameContainer = document.querySelector('.game-container');
+                console.log('Game container:', gameContainer);
+                gameContainer.classList.add('ai-wins');
+                playSound('correctSound');
                 
-                if (rank === 1) {
-                    // AI won
-                    gameOver = true;
-                    guessInput.disabled = true;
-                    submitButton.disabled = true;
-                    showNotification(`AI wins! The word was "${word}"`, false, 0);  // Keep notification visible
-                    playSound('correctSound');
-                } else {
-                    isHumanTurn = true;
-                    updateTurnIndicator();
-                    playSound('humanTurnSound');
-                }
+                // Add shake animation to eyes
+                const eyes = document.querySelectorAll('.eye');
+                console.log('Eyes elements:', eyes);
+                eyes.forEach(eye => eye.classList.add('ai-win-eye'));
+                
+                setTimeout(() => {
+                    gameContainer.classList.remove('ai-wins');
+                    eyes.forEach(eye => eye.classList.remove('ai-win-eye'));
+                }, 3000);
+                
+                gameOver = true;
+                submitButton.disabled = true;
+                giveUpButton.disabled = true;
             }
-        } catch (error) {
-            console.error('Error during AI guess:', error);
-            showNotification('Error during AI turn', true);
-        }
+            
+            if (data.ai_guess && data.ai_rank) {
+                addGuessToList(data.ai_guess, data.ai_rank, true, data.ai_rank === 1);
+            }
+            
+            isHumanTurn = true;
+            updateTurnIndicator();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error making AI guess', true);
+            isHumanTurn = true;
+            updateTurnIndicator();
+        });
     }
 
     function handleSubmit() {

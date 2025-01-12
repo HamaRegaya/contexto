@@ -157,7 +157,7 @@ def make_guess():
     game_state.human_guesses.append((guess, rank, float(similarity)))
     
     # Check if human won
-    if guess == game_state.target_word:
+    if rank == 1:
         game_state.game_over = True
         game_state.winner = 'human'
         return jsonify({
@@ -166,26 +166,26 @@ def make_guess():
             'human_guesses': game_state.human_guesses,
             'ai_guesses': game_state.ai_guesses,
             'game_over': True,
-            'winner': 'human'
+            'winner': 'human',
+            'target_word': game_state.target_word
         })
     
-    # Make AI guess
-    game_state.current_turn = 'ai'
-    ai_guess, ai_rank = make_ai_guess()
-    
-    # If AI couldn't make a valid guess, switch back to human turn
-    if ai_guess is None:
-        game_state.current_turn = 'human'
-        return jsonify({
-            'status': 'success',
-            'rank': rank,
-            'human_guesses': game_state.human_guesses,
-            'ai_guesses': game_state.ai_guesses,
-            'game_over': game_state.game_over,
-            'winner': game_state.winner,
-            'ai_guess': None,
-            'ai_rank': None
-        })
+    # If human didn't win, let AI make a guess
+    if not game_state.game_over:
+        game_state.current_turn = 'ai'
+        ai_guess, ai_rank = make_ai_guess()
+        
+        if ai_guess is None:
+            return jsonify({
+                'status': 'success',
+                'rank': rank,
+                'human_guesses': game_state.human_guesses,
+                'ai_guesses': game_state.ai_guesses,
+                'game_over': game_state.game_over,
+                'winner': game_state.winner,
+                'ai_guess': None,
+                'ai_rank': None
+            })
     
     # Always switch back to human turn after AI's guess (unless game is over)
     if not game_state.game_over:
@@ -199,7 +199,8 @@ def make_guess():
         'game_over': game_state.game_over,
         'winner': game_state.winner,
         'ai_guess': ai_guess,
-        'ai_rank': ai_rank
+        'ai_rank': ai_rank,
+        'target_word': game_state.target_word if game_state.game_over else None
     })
 
 @app.route('/api/give-up', methods=['POST'])
