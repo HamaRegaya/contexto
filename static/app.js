@@ -365,6 +365,16 @@ document.addEventListener('DOMContentLoaded', () => {
     giveUpButton.addEventListener('click', handleGiveUp);
     restartButton.addEventListener('click', startNewGame);
     
+    // Tutorial button functionality
+    const tutorialButton = document.getElementById('tutorialButton');
+    tutorialButton.addEventListener('click', () => {
+        tutorial.style.display = 'flex';
+    });
+
+    closeTutorialButton.addEventListener('click', () => {
+        tutorial.style.display = 'none';
+    });
+
     guessInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             handleSubmit();
