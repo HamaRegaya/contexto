@@ -30,7 +30,7 @@ def generate_embeddings(model_id, body):
 
     logger.info("Generating embeddings with Amazon Titan Text Embeddings V2 model %s", model_id)
 
-    bedrock = boto3.client(service_name='bedrock-runtime', region_name='eu-west-3',aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"))
+    bedrock = boto3.client(service_name='bedrock-runtime', region_name='eu-west-3',ACCESS_KEY_ID=os.getenv("ACCESS_KEY_ID"),SECRET_ACCESS_KEY=os.getenv("SECRET_ACCESS_KEY"))
 
     accept = "application/json"
     content_type = "application/json"

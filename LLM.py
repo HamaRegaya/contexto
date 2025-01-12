@@ -17,8 +17,8 @@ try:
         model="mistral.mistral-7b-instruct-v0:2",
         temperature=0.7,
         region_name='eu-west-3',
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+        ACCESS_KEY_ID=os.getenv("ACCESS_KEY_ID"),
+        SECRET_ACCESS_KEY=os.getenv("SECRET_ACCESS_KEY")
     )
 
     # # Create message
