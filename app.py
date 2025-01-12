@@ -16,7 +16,7 @@ load_dotenv(override=True)
 os.environ['AWS_ACCESS_KEY_ID'] = os.getenv("ACCESS_KEY_ID")
 os.environ['AWS_SECRET_ACCESS_KEY'] = os.getenv("SECRET_ACCESS_KEY")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 CORS(app)
 
 # Load word embeddings model
@@ -314,5 +314,5 @@ def make_ai_guess():
     # If we've exhausted all attempts, return None
     return None, None
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
