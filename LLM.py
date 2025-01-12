@@ -14,7 +14,7 @@ load_dotenv(override=True)
 try:
     # Initialize ChatBedrockConverse
     llm = ChatBedrockConverse(
-        model="mistral.mistral-7b-instruct-v0:2",
+        model="anthropic.claude-3-haiku-20240307-v1:0",
         temperature=0.7,
         region_name='eu-west-3',
         aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),

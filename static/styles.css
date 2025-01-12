@@ -333,6 +333,7 @@ h3 {
     font-weight: 600;
     border-bottom: 2px solid #e0e0e0;
     margin-bottom: 0.5rem;
+    color: #1976d2;
 }
 
 .guesses-list {
@@ -941,4 +942,16 @@ h3 {
     padding: 2px 6px;
     border-radius: 4px;
     font-weight: bold;
+}
+
+.guess-item.human-last-guess {
+    border-left: 4px solid #1976d2;
+    padding-left: calc(1rem - 4px);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.guess-item.ai-last-guess {
+    border-left: 4px solid #7b1fa2;
+    padding-left: calc(1rem - 4px);
+    animation: fadeIn 0.5s ease-out;
 }

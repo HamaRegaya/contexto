@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameOver = false;
     let allGuesses = [];
     let lastAIGuessWord = null;  // Track the last AI guess word
+    let lastHumanGuessWord = null;  // Track the last human guess word
 
     // Show tutorial if it's the user's first visit
     if (!localStorage.getItem('tutorialSeen')) {
@@ -76,9 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addGuessToList(word, rank, isAI = false, isCorrect = false) {
-        // Update last AI guess if this is an AI guess
+        // Update last guess based on player
         if (isAI) {
             lastAIGuessWord = word;
+        } else {
+            lastHumanGuessWord = word;
         }
         
         // Add to our guesses array
@@ -96,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             listItem.className = `guess-item ${getRankClass(guess.rank)}`;
             if (guess.isCorrect) listItem.classList.add('correct');
             if (isAI && guess.word === lastAIGuessWord) listItem.classList.add('ai-last-guess');
+            if (!isAI && guess.word === lastHumanGuessWord) listItem.classList.add('human-last-guess');
             
             const wordSpan = document.createElement('span');
             wordSpan.className = 'word';
@@ -131,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameOver = false;
                 allGuesses = []; // Reset guesses array
                 lastAIGuessWord = null; // Reset last AI guess
+                lastHumanGuessWord = null; // Reset last human guess
                 guessesList.innerHTML = '';
                 guessInput.disabled = false;
                 submitButton.disabled = false;
