@@ -10,19 +10,221 @@ import json
 from botocore.exceptions import ClientError
 import os
 from dotenv import load_dotenv
-from gevent.pywsgi import WSGIServer
+import boto3
+import uuid
+import bcrypt
+from datetime import datetime
+import time
+from boto3.dynamodb.conditions import Key, Attr
 load_dotenv(override=True)
 
 # Set AWS credentials as environment variables
 os.environ['AWS_ACCESS_KEY_ID'] = os.getenv("ACCESS_KEY_ID")
 os.environ['AWS_SECRET_ACCESS_KEY'] = os.getenv("SECRET_ACCESS_KEY")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 CORS(app)
+
+# Initialize DynamoDB
+dynamodb = boto3.resource('dynamodb',
+    region_name='eu-west-3',
+    aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY")
+)
+
+
+# Game history functions
+def save_game_history(user_id, target_word, guesses_count, final_rank, time_taken, completed=True):
+    try:
+        table = dynamodb.Table('ContextoGameHistory')
+        timestamp = int(time.time())
+        
+        game_item = {
+            'game_id': str(uuid.uuid4()),
+            'user_id': user_id,
+            'target_word': target_word,
+            'guesses_count': guesses_count,
+            'final_rank': final_rank,
+            'played_at': timestamp,
+            'completed': completed,
+            'time_taken': time_taken
+        }
+        
+        table.put_item(Item=game_item)
+        return True, "Game history saved successfully"
+        
+    except Exception as e:
+        print(f"Error saving game history: {e}")
+        return False, str(e)
+
+def get_user_game_history(user_id, limit=10):
+    try:
+        table = dynamodb.Table('ContextoGameHistory')
+        
+        # Use scan with filter expression as a temporary solution
+        response = table.scan(
+            FilterExpression=Attr('user_id').eq(user_id),
+            Limit=limit
+        )
+        
+        # Sort the results by played_at in descending order
+        items = sorted(response['Items'], key=lambda x: x.get('played_at', 0), reverse=True)
+        
+        return True, items[:limit]
+        
+    except Exception as e:
+        print(f"Error retrieving game history: {e}")
+        return False, str(e)
+
+def get_user_stats(user_id):
+    try:
+        table = dynamodb.Table('ContextoGameHistory')
+        
+        # Use scan with filter expression
+        response = table.scan(
+            FilterExpression=Attr('user_id').eq(user_id)
+        )
+        
+        games = response['Items']
+        
+        # Calculate statistics
+        total_games = len(games)
+        if total_games == 0:
+            return True, {
+                'total_games': 0,
+                'completed_games': 0,
+                'completion_rate': 0,
+                'best_rank': None,
+                'average_guesses': 0
+            }
+            
+        completed_games = len([g for g in games if g.get('completed', False)])
+        ranks = [g.get('final_rank', float('inf')) for g in games if g.get('final_rank') is not None]
+        best_rank = min(ranks) if ranks else None
+        guesses = [g.get('guesses_count', 0) for g in games]
+        average_guesses = sum(guesses) / len(guesses) if guesses else 0
+        
+        stats = {
+            'total_games': total_games,
+            'completed_games': completed_games,
+            'completion_rate': (completed_games / total_games * 100) if total_games > 0 else 0,
+            'best_rank': best_rank,
+            'average_guesses': round(average_guesses, 1)
+        }
+        
+        return True, stats
+        
+    except Exception as e:
+        print(f"Error retrieving user stats: {e}")
+        return False, str(e)
+
+# User management functions
+def create_user(username, email, password):
+    try:
+        table = dynamodb.Table('ContextoUsers')
+        
+        # Check if username already exists
+        response = table.scan(
+            FilterExpression=Attr('username').eq(username)
+        )
+        if response['Items']:
+            return False, "Username already exists"
+            
+        # Check if email already exists
+        response = table.scan(
+            FilterExpression=Attr('email').eq(email)
+        )
+        if response['Items']:
+            return False, "Email already exists"
+        
+        # Hash password
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Create user
+        user_id = str(uuid.uuid4())
+        timestamp = int(time.time())
+        
+        user_item = {
+            'user_id': user_id,
+            'username': username,
+            'email': email,
+            'password_hash': password_hash.decode('utf-8'),
+            'created_at': timestamp,
+            'last_login': timestamp,
+            'games_played': 0,
+            'best_score': 0
+        }
+        
+        table.put_item(Item=user_item)
+        return True, "User created successfully"
+        
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        return False, str(e)
+
+def verify_user(username, password):
+    try:
+        table = dynamodb.Table('ContextoUsers')
+        
+        # Get user by username
+        response = table.scan(
+            FilterExpression=Attr('username').eq(username)
+        )
+        
+        if not response['Items']:
+            return False, "User not found"
+            
+        user = response['Items'][0]
+        
+        # Verify password
+        if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            # Update last login
+            table.update_item(
+                Key={'user_id': user['user_id']},
+                UpdateExpression='SET last_login = :timestamp',
+                ExpressionAttributeValues={':timestamp': int(time.time())}
+            )
+            return True, user
+        else:
+            return False, "Invalid password"
+            
+    except Exception as e:
+        print(f"Error verifying user: {e}")
+        return False, str(e)
+
+def update_user_stats(user_id, score):
+    try:
+        table = dynamodb.Table('ContextoUsers')
+        
+        # Get current user stats
+        response = table.get_item(
+            Key={'user_id': user_id}
+        )
+        
+        if 'Item' not in response:
+            return False, "User not found"
+            
+        user = response['Item']
+        
+        # Update stats
+        table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression='SET games_played = games_played + :inc, best_score = :score',
+            ExpressionAttributeValues={
+                ':inc': 1,
+                ':score': min(score, user.get('best_score', float('inf'))) if user.get('best_score') else score
+            }
+        )
+        return True, "Stats updated successfully"
+        
+    except Exception as e:
+        print(f"Error updating user stats: {e}")
+        return False, str(e)
+
 
 # Load word embeddings model
 print("Loading word embeddings model...")
-model = KeyedVectors.load('glove-wiki-gigaword-50.model')
+model = KeyedVectors.load('glove-wiki-gigaword-300.model')
 word_vectors = model.vectors
 print("Model loaded!")
 
@@ -53,14 +255,13 @@ except Exception as e:
 # Game state
 class GameState:
     def __init__(self):
-        self.target_word = None
-        self.daily_number = None
-        self.last_reset_date = None
-        self.human_guesses = []
-        self.ai_guesses = []
-        self.current_turn = 'human'  # 'human' or 'ai'
+        self.target_word = TARGET_WORDS[0] if TARGET_WORDS else None  # Initialize with first word
         self.game_over = False
         self.winner = None
+        self.human_guesses = []
+        self.ai_guesses = []
+        self.current_turn = 'human'
+        self.start_time = int(time.time())
 
 # Static list of simple words to guess
 TARGET_WORDS = [
@@ -105,6 +306,7 @@ def initialize_daily_word():
         game_state.current_turn = 'human'
         game_state.game_over = False
         game_state.winner = None
+        game_state.start_time = int(time.time())
 
 def convert_similarity_to_rank(similarity):
     """Convert similarity score to a ranking number using the following scale:
@@ -146,6 +348,38 @@ def calculate_similarity(word1, word2):
     except KeyError:
         return None
 
+# Helper function to get leaderboard data
+def get_leaderboard_data():
+    # Combine and sort all guesses
+    all_guesses = []
+    
+    # Add human guesses
+    for word, similarity in game_state.human_guesses:
+        rank = convert_similarity_to_rank(similarity)
+        all_guesses.append({
+            'word': word,
+            'rank': rank,
+            'player': 'human'
+        })
+    
+    # Add AI guesses
+    for word, similarity in game_state.ai_guesses:
+        rank = convert_similarity_to_rank(similarity)
+        all_guesses.append({
+            'word': word,
+            'rank': rank,
+            'player': 'ai'
+        })
+    
+    # Sort by rank (lower is better)
+    all_guesses.sort(key=lambda x: x['rank'])
+    
+    return {
+        'leaderboard': all_guesses,
+        'totalGuesses': len(all_guesses),
+        'totalPlayers': len(set(guess['player'] for guess in all_guesses))
+    }
+
 @app.route('/')
 def serve_index():
     return render_template('index.html')
@@ -160,6 +394,7 @@ def start_game():
     game_state.current_turn = 'human'
     game_state.game_over = False
     game_state.winner = None
+    game_state.start_time = int(time.time())
     
     return jsonify({'status': 'success'})
 
@@ -167,6 +402,7 @@ def start_game():
 def make_guess():
     data = request.get_json()
     guess = data.get('guess', '').lower()
+    user_id = data.get('user_id')
     
     if not guess:
         return jsonify({'status': 'error', 'message': 'No guess provided'})
@@ -194,6 +430,15 @@ def make_guess():
     if rank == 1:
         game_state.game_over = True
         game_state.winner = 'human'
+        if user_id:
+            save_game_history(
+                user_id=user_id,
+                target_word=game_state.target_word,
+                guesses_count=len(game_state.human_guesses),
+                final_rank=1,
+                time_taken=int(time.time()) - game_state.start_time,
+                completed=True
+            )
         return jsonify({
             'status': 'success',
             'rank': rank,
@@ -239,13 +484,29 @@ def make_guess():
 
 @app.route('/api/give-up', methods=['POST'])
 def give_up():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    
+    if user_id:
+        # Save game history as incomplete
+        guesses_count = len(game_state.human_guesses)
+        time_taken = int(time.time()) - game_state.start_time
+        last_rank = guesses_count + 1  # Use number of guesses + 1 as final rank for incomplete games
+        
+        save_game_history(
+            user_id=user_id,
+            target_word=game_state.target_word,
+            guesses_count=guesses_count,
+            final_rank=last_rank,
+            time_taken=time_taken,
+            completed=False
+        )
+
     game_state.game_over = True
     game_state.winner = 'ai'
     return jsonify({
-        'status': 'success',
         'target_word': game_state.target_word,
-        'game_over': True,
-        'winner': 'ai'
+        'total_guesses': len(game_state.human_guesses)
     })
 
 @app.route('/api/stats', methods=['GET'])
@@ -255,6 +516,144 @@ def get_stats():
         'dailyNumber': game_state.daily_number,
         'totalPlayers': len(set(guess[0] for guess in game_state.human_guesses))
     })
+
+@app.route('/api/save_game', methods=['POST'])
+def save_game():
+    data = request.get_json()
+    required_fields = ['user_id', 'target_word', 'guesses_count', 'final_rank', 'time_taken', 'completed']
+    
+    if not all(field in data for field in required_fields):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    success, message = save_game_history(
+        data['user_id'],
+        data['target_word'],
+        data['guesses_count'],
+        data['final_rank'],
+        data['time_taken'],
+        data['completed']
+    )
+    
+    if success:
+        return jsonify({'success': True, 'message': message})
+    else:
+        return jsonify({'success': False, 'message': message}), 500
+
+@app.route('/api/available-words', methods=['GET'])
+def get_available_words():
+    return jsonify({
+        'words': [f'Word {i+1}' for i in range(len(TARGET_WORDS))],
+        'count': len(TARGET_WORDS)
+    })
+
+@app.route('/api/set-target-word', methods=['POST'])
+def set_target_word():
+    data = request.get_json()
+    word_index = data.get('index')
+    
+    if word_index is None or not (0 <= word_index < len(TARGET_WORDS)):
+        return jsonify({'success': False, 'message': 'Invalid word index'}), 400
+    
+    # Initialize new game state
+    selected_word = TARGET_WORDS[word_index]
+    print(f"\n=== New Game Started ===")
+    print(f"Selected Word: {selected_word}")
+    print("=" * 25)
+    
+    # Clear all game state
+    game_state.target_word = selected_word
+    game_state.game_over = False
+    game_state.winner = None
+    game_state.human_guesses = []
+    game_state.ai_guesses = []
+    game_state.current_turn = 'human'
+    game_state.start_time = int(time.time())
+    
+    # Return current game state for frontend sync
+    return jsonify({
+        'success': True,
+        'leaderboard': get_leaderboard_data()
+    })
+
+@app.route('/api/leaderboard', methods=['GET'])
+def get_leaderboard():
+    return jsonify(get_leaderboard_data())
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not all([username, email, password]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    success, message = create_user(username, email, password)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not all([username, password]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    success, result = verify_user(username, password)
+    if success:
+        return jsonify({
+            'success': True,
+            'user': {
+                'user_id': result['user_id'],
+                'username': result['username'],
+                'email': result['email'],
+                'games_played': result['games_played'],
+                'best_score': result['best_score']
+            }
+        })
+    else:
+        return jsonify({'success': False, 'message': result}), 401
+
+@app.route('/api/update_stats', methods=['POST'])
+def update_stats():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    score = data.get('score')
+    
+    if not all([user_id, score]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    success, message = update_user_stats(user_id, score)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/game_history', methods=['GET'])
+def get_history():
+    user_id = request.args.get('user_id')
+    limit = int(request.args.get('limit', 10))
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+        
+    success, result = get_user_game_history(user_id, limit)
+    if success:
+        return jsonify({'success': True, 'history': result})
+    else:
+        return jsonify({'success': False, 'message': result}), 500
+
+@app.route('/api/user_stats', methods=['GET'])
+def get_user_game_stats():
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+        
+    success, result = get_user_stats(user_id)
+    if success:
+        return jsonify({'success': True, 'stats': result})
+    else:
+        return jsonify({'success': False, 'message': result}), 500
 
 def make_ai_guess():
     # Get all previously used words
@@ -316,6 +715,4 @@ def make_ai_guess():
     return None, None
 
 if __name__ == "__main__":
-    # app.run(host="0.0.0.0", port=5000)
-    http_server = WSGIServer(('', 5000), app)
-    http_server.serve_forever()
+    app.run(host="0.0.0.0", port=5000)
