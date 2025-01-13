@@ -2,32 +2,62 @@ version: 1
 applications:
   - frontend:
       phases:
+        preBuild:
+          commands:
+            - echo "Setting up frontend assets"
         build:
           commands:
-            - echo "No frontend build required"
+            - echo "Copying static files"
       artifacts:
-        baseDirectory: /static
+        baseDirectory: static
         files:
           - '**/*'
-    appRoot: /
+      cache:
+        paths: []
+      appRoot: /
   - backend:
       phases:
+        preBuild:
+          commands:
+            - echo "Installing system dependencies"
+            - apt-get update
+            - apt-get install -y python3-dev
         build:
           commands:
+            - echo "Installing Python dependencies"
             - pip install --upgrade pip
             - pip install -r requirements.txt
-            - pip install gunicorn
+            # Download word embeddings model if not in repo
+            - if [ ! -f "glove-wiki-gigaword-300.model" ]; then aws s3 cp s3://your-bucket/glove-wiki-gigaword-300.model .; fi
+        postBuild:
+          commands:
+            - echo "Setting up environment"
+            - python -c "import nltk; nltk.download('punkt')"
       artifacts:
         baseDirectory: /
         files:
           - '**/*'
+          - 'Procfile'
+          - 'requirements.txt'
+          - 'app.py'
+          - 'dynamodb.py'
+          - 'templates/**/*'
+          - 'static/**/*'
+          - 'glove-wiki-gigaword-300.model'
         excludes:
-          - .git/**/*
-          - .gitignore
-          - .env
-          - README.md
-          - amplify.yml
+          - '.git/**/*'
+          - '.gitignore'
+          - '.env'
+          - '.env.*'
+          - 'README.md'
+          - 'amplify.yml'
+          - '__pycache__/**/*'
+          - '*.pyc'
+          - 'venv/**/*'
+          - '.venv/**/*'
+          - 'build/**/*'
       cache:
         paths:
           - /root/.cache/pip
-    appRoot: /
+          - glove-wiki-gigaword-300.model
+      appRoot: /
