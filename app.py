@@ -10,13 +10,14 @@ import json
 from botocore.exceptions import ClientError
 import os
 from dotenv import load_dotenv
+from gevent.pywsgi import WSGIServer
 load_dotenv(override=True)
 
 # Set AWS credentials as environment variables
 os.environ['AWS_ACCESS_KEY_ID'] = os.getenv("ACCESS_KEY_ID")
 os.environ['AWS_SECRET_ACCESS_KEY'] = os.getenv("SECRET_ACCESS_KEY")
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__)
 CORS(app)
 
 # Load word embeddings model
@@ -315,4 +316,6 @@ def make_ai_guess():
     return None, None
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # app.run(host="0.0.0.0", port=5000)
+    http_server = WSGIServer(('', 5000), app)
+    http_server.serve_forever()

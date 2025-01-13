@@ -4,7 +4,8 @@ scikit-learn
 python-dotenv
 Flask-SQLAlchemy
 Flask-Cors
-gunicorn
+# gunicorn
 langchain-aws
 langchain
-waitress
+# waitress
+gevent
