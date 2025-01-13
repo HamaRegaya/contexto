@@ -262,6 +262,8 @@ class GameState:
         self.ai_guesses = []
         self.current_turn = 'human'
         self.start_time = int(time.time())
+        self.last_reset_date = datetime.now().date()  # Add last_reset_date
+        self.daily_number = 0  # Add daily_number
 
 # Static list of simple words to guess
 TARGET_WORDS = [
@@ -289,8 +291,9 @@ def generate_easy_word():
 def initialize_daily_word():
     current_date = datetime.now().date()
     
+    # Initialize if target_word is None or last_reset_date is different from current date
     if (game_state.target_word is None or 
-        game_state.last_reset_date != current_date):
+        getattr(game_state, 'last_reset_date', None) != current_date):
         
         # Generate new easy word
         game_state.target_word = generate_easy_word()
@@ -301,8 +304,8 @@ def initialize_daily_word():
         game_state.daily_number = (today - epoch).days
         
         game_state.last_reset_date = current_date
-        game_state.human_guesses = []
-        game_state.ai_guesses = []
+        game_state.human_guesses = []  # Create new empty list
+        game_state.ai_guesses = []     # Create new empty list
         game_state.current_turn = 'human'
         game_state.game_over = False
         game_state.winner = None
@@ -354,8 +357,7 @@ def get_leaderboard_data():
     all_guesses = []
     
     # Add human guesses
-    for word, similarity in game_state.human_guesses:
-        rank = convert_similarity_to_rank(similarity)
+    for word, rank, similarity in game_state.human_guesses:
         all_guesses.append({
             'word': word,
             'rank': rank,
@@ -363,8 +365,7 @@ def get_leaderboard_data():
         })
     
     # Add AI guesses
-    for word, similarity in game_state.ai_guesses:
-        rank = convert_similarity_to_rank(similarity)
+    for word, rank, similarity in game_state.ai_guesses:
         all_guesses.append({
             'word': word,
             'rank': rank,
@@ -388,15 +389,23 @@ def serve_index():
 def start_game():
     initialize_daily_word()  # Initialize or get the daily word
     
-    # Reset game state
-    game_state.human_guesses = []
-    game_state.ai_guesses = []
+    # Reset game state with new empty lists
+    game_state.human_guesses = []  # Create new empty list
+    game_state.ai_guesses = []     # Create new empty list
     game_state.current_turn = 'human'
     game_state.game_over = False
     game_state.winner = None
     game_state.start_time = int(time.time())
     
-    return jsonify({'status': 'success'})
+    # Return empty leaderboard
+    return jsonify({
+        'status': 'success',
+        'leaderboard': {
+            'leaderboard': [],
+            'totalGuesses': 0,
+            'totalPlayers': 0
+        }
+    })
 
 @app.route('/api/guess', methods=['POST'])
 def make_guess():
@@ -413,10 +422,11 @@ def make_guess():
     if game_state.current_turn != 'human':
         return jsonify({'status': 'error', 'message': 'Not your turn'})
     
-    # Check if word has been guessed before
-    used_words = {guess[0] for guess in game_state.human_guesses + game_state.ai_guesses}
+    # Check if word has been guessed before - fixed to check entire words
+    used_words = {g[0] for g in game_state.human_guesses + game_state.ai_guesses}  # g[0] is the word from the tuple
     if guess in used_words:
         return jsonify({'status': 'error', 'message': 'Word has already been guessed'})
+    
     rank, similarity = calculate_similarity(guess, game_state.target_word)
     print("Guess:"+ guess + " similarity:" + str(similarity))
     
@@ -442,11 +452,10 @@ def make_guess():
         return jsonify({
             'status': 'success',
             'rank': rank,
-            'human_guesses': game_state.human_guesses,
-            'ai_guesses': game_state.ai_guesses,
             'game_over': True,
             'winner': 'human',
-            'target_word': game_state.target_word
+            'target_word': game_state.target_word,
+            'leaderboard': get_leaderboard_data()  # Return current leaderboard data
         })
     
     # If human didn't win, let AI make a guess
@@ -458,12 +467,11 @@ def make_guess():
             return jsonify({
                 'status': 'success',
                 'rank': rank,
-                'human_guesses': game_state.human_guesses,
-                'ai_guesses': game_state.ai_guesses,
                 'game_over': game_state.game_over,
                 'winner': game_state.winner,
                 'ai_guess': None,
-                'ai_rank': None
+                'ai_rank': None,
+                'leaderboard': get_leaderboard_data()  # Return current leaderboard data
             })
     
     # Always switch back to human turn after AI's guess (unless game is over)
@@ -473,13 +481,12 @@ def make_guess():
     return jsonify({
         'status': 'success',
         'rank': rank,
-        'human_guesses': game_state.human_guesses,
-        'ai_guesses': game_state.ai_guesses,
         'game_over': game_state.game_over,
         'winner': game_state.winner,
         'ai_guess': ai_guess,
         'ai_rank': ai_rank,
-        'target_word': game_state.target_word if game_state.game_over else None
+        'target_word': game_state.target_word if game_state.game_over else None,
+        'leaderboard': get_leaderboard_data()  # Return current leaderboard data
     })
 
 @app.route('/api/give-up', methods=['POST'])
@@ -564,15 +571,19 @@ def set_target_word():
     game_state.target_word = selected_word
     game_state.game_over = False
     game_state.winner = None
-    game_state.human_guesses = []
-    game_state.ai_guesses = []
+    game_state.human_guesses = []  # Create new empty list
+    game_state.ai_guesses = []     # Create new empty list
     game_state.current_turn = 'human'
     game_state.start_time = int(time.time())
     
-    # Return current game state for frontend sync
+    # Return empty leaderboard for frontend sync
     return jsonify({
         'success': True,
-        'leaderboard': get_leaderboard_data()
+        'leaderboard': {
+            'leaderboard': [],
+            'totalGuesses': 0,
+            'totalPlayers': 0
+        }
     })
 
 @app.route('/api/leaderboard', methods=['GET'])

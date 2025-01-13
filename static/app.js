@@ -50,12 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAuthUI(true);
     }
 
-    // Show tutorial if it's the user's first visit
-    if (!localStorage.getItem('tutorialSeen')) {
-        tutorial.style.display = 'block';
-    } else {
-        tutorial.style.display = 'none';
-    }
+    // // Show tutorial if it's the user's first visit
+    // if (!localStorage.getItem('tutorialSeen')) {
+    //     tutorial.style.display = 'block';
+    // } else {
+    //     tutorial.style.display = 'none';
+    // }
 
     closeTutorialButton.addEventListener('click', () => {
         tutorial.style.display = 'none';
@@ -164,8 +164,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function startNewGame() {
         try {
+            // Call backend to reset game state
+            const response = await fetch('/api/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            if (data.status !== 'success') {
+                throw new Error('Failed to start new game');
+            }
+            
             // Reset game state
             gameOver = false;
+            isHumanTurn = true;
+            allGuesses = [];
             document.getElementById('guessesList').innerHTML = '';
             document.getElementById('guessInput').value = '';
             document.getElementById('guessInput').disabled = false;
@@ -189,6 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (wordSelector) {
                 wordSelector.value = '';
             }
+            
+            // Reset thinking time
+            resetThinkingTimer();
+            
+            // Update turn indicator
+            updateTurnIndicator();
             
             showNotification('New game started!', false);
         } catch (error) {
@@ -819,6 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 // Reset game state
                 gameOver = false;
+                isHumanTurn = true;
+                allGuesses = [];  // Clear all guesses
                 document.getElementById('guessesList').innerHTML = '';
                 document.getElementById('guessInput').value = '';
                 document.getElementById('guessInput').disabled = false;
@@ -832,14 +855,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmGiveUpBtn.disabled = false;
                 cancelGiveUpBtn.style.display = 'block';
                 
-                // Clear and update leaderboard
+                // Clear leaderboard completely
                 const leaderboardList = document.getElementById('leaderboard-list');
                 if (leaderboardList) {
                     leaderboardList.innerHTML = '';
-                    if (data.leaderboard && data.leaderboard.leaderboard) {
-                        updateLeaderboard(data.leaderboard);
-                    }
                 }
+                
+                // Reset thinking time
+                resetThinkingTimer();
+                
+                // Update turn indicator
+                updateTurnIndicator();
                 
                 showNotification(`New game started with Word ${selectedIndex + 1}`, false);
                 
