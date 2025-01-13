@@ -1,30 +1,54 @@
-# Word Guessing Game with GloVe Word Embeddings
+# Cognify: Human vs AI Word Guessing Game
 
-This project implements a daily word guessing game using GloVe word embeddings to calculate similarity between words. Players attempt to guess a target word, receiving feedback on how similar their guesses are to the correct answer.
-
-The game features a Flask-based backend that handles word similarity calculations and game logic, and a JavaScript frontend that provides an interactive user interface. The application uses pre-trained GloVe (Global Vectors for Word Representation) word embeddings to compute semantic similarities between words, offering an engaging and educational word game experience.
+Cognify is an engaging word guessing game where players compete against an AI to guess a target word. The game uses GloVe word embeddings to calculate the similarity between words, providing feedback on how close each guess is to the target word. The game features a Flask-based backend and a JavaScript frontend, offering an interactive and educational experience.
 
 ## Repository Structure
 
 ```
 .
+├── amplify.yml
 ├── app.py
+├── build.sh
+├── Dockerfile
+├── dynamodb.py
+├── embedding.py
 ├── game.py
 ├── glove-wiki.py
+├── LLM.py
+├── Procfile
+├── README.md
+├── requirements.txt
+├── similarity.py
 ├── static
 │   ├── app.js
+│   ├── sounds
+│   │   └── README.md
 │   └── styles.css
-└── templates
-    └── index.html
+├── templates
+│   └── index.html
+└── glove-wiki-gigaword-50.model
 ```
 
 ### Key Files:
 
+- `amplify.yml`: Configuration file for AWS Amplify.
 - `app.py`: Flask application serving as the backend for the word guessing game.
+- `build.sh`: Script to build the Flask application.
+- `Dockerfile`: Docker configuration for containerizing the application.
+- `dynamodb.py`: Script to create DynamoDB tables for user and game history.
+- `embedding.py`: Script to generate embeddings using Amazon Titan Text Embeddings.
 - `game.py`: Utility script for word similarity calculations using GloVe embeddings.
 - `glove-wiki.py`: Script to download and save the pre-trained GloVe word embedding model.
+- `LLM.py`: Script to initialize and use the ChatBedrockConverse model.
+- `Procfile`: Configuration for deploying the application with Gunicorn.
+- `README.md`: This file, providing an overview of the project.
+- `requirements.txt`: List of Python dependencies for the project.
+- `similarity.py`: Script for calculating word similarity scores.
 - `static/app.js`: Frontend JavaScript code for game interaction and UI updates.
+- `static/sounds/README.md`: Instructions for downloading sound effects.
+- `static/styles.css`: CSS styles for the game's web interface.
 - `templates/index.html`: HTML template for the game's web interface.
+- `glove-wiki-gigaword-50.model`: Pre-trained GloVe word embedding model.
 
 ## Usage Instructions
 
@@ -61,15 +85,24 @@ The game features a Flask-based backend that handles word similarity calculation
 - `POST /api/guess`: Submit a word guess
   ```json
   {
-    "word": "example"
+    "guess": "example"
   }
   ```
   Response:
   ```json
   {
-    "similarity": 0.75,
-    "isCorrect": false,
-    "dailyNumber": 42
+    "status": "success",
+    "rank": 123,
+    "game_over": false,
+    "winner": null,
+    "ai_guess": "sample",
+    "ai_rank": 456,
+    "target_word": null,
+    "leaderboard": {
+      "leaderboard": [],
+      "totalGuesses": 0,
+      "totalPlayers": 0
+    }
   }
   ```
 
@@ -77,9 +110,8 @@ The game features a Flask-based backend that handles word similarity calculation
   Response:
   ```json
   {
-    "word": "target",
-    "dailyNumber": 42,
-    "message": "The word was: target"
+    "target_word": "target",
+    "total_guesses": 10
   }
   ```
 
@@ -92,16 +124,94 @@ The game features a Flask-based backend that handles word similarity calculation
   }
   ```
 
+- `POST /api/start`: Start a new game
+  Response:
+  ```json
+  {
+    "status": "success",
+    "leaderboard": {
+      "leaderboard": [],
+      "totalGuesses": 0,
+      "totalPlayers": 0
+    }
+  }
+  ```
+
+- `POST /api/save_game`: Save game history
+  ```json
+  {
+    "user_id": "user123",
+    "target_word": "target",
+    "guesses_count": 10,
+    "final_rank": 1,
+    "time_taken": 300,
+    "completed": true
+  }
+  ```
+  Response:
+  ```json
+  {
+    "success": true,
+    "message": "Game history saved successfully"
+  }
+  ```
+
+- `GET /api/game_history`: Retrieve user game history
+  ```json
+  {
+    "user_id": "user123",
+    "limit": 10
+  }
+  ```
+  Response:
+  ```json
+  {
+    "success": true,
+    "history": [
+      {
+        "game_id": "game123",
+        "user_id": "user123",
+        "target_word": "target",
+        "guesses_count": 10,
+        "final_rank": 1,
+        "played_at": 1620000000,
+        "completed": true,
+        "time_taken": 300
+      }
+    ]
+  }
+  ```
+
+- `GET /api/user_stats`: Retrieve user statistics
+  ```json
+  {
+    "user_id": "user123"
+  }
+  ```
+  Response:
+  ```json
+  {
+    "success": true,
+    "stats": {
+      "total_games": 10,
+      "completed_games": 8,
+      "completion_rate": 80,
+      "best_rank": 1,
+      "average_guesses": 5.5
+    }
+  }
+  ```
+
 ### Troubleshooting
 
-1. Model not found error:
+1. **Model not found error**:
    - Ensure you've run `python glove-wiki.py` to download the GloVe model.
    - Verify that `glove-wiki-gigaword-50.model` exists in the project root.
 
-2. Word not in dictionary error:
+2. **Word not in dictionary error**:
    - The GloVe model has a limited vocabulary. Try using more common words.
 
-3. Slow response times:
+3. **Slow response times**:
    - The first request might be slow as the model loads into memory. Subsequent requests should be faster.
 
 ### Debugging
