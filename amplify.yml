@@ -1,63 +1,62 @@
 version: 1
-applications:
-  - frontend:
-      phases:
-        preBuild:
-          commands:
-            - echo "Setting up frontend assets"
-        build:
-          commands:
-            - echo "Copying static files"
-      artifacts:
-        baseDirectory: static
-        files:
-          - '**/*'
-      cache:
-        paths: []
-      appRoot: /
-  - backend:
-      phases:
-        preBuild:
-          commands:
-            - echo "Installing system dependencies"
-            - apt-get update
-            - apt-get install -y python3-dev
-        build:
-          commands:
-            - echo "Installing Python dependencies"
-            - pip install --upgrade pip
-            - pip install -r requirements.txt
-            # Download word embeddings model if not in repo
-            - if [ ! -f "glove-wiki-gigaword-50.model" ]; then aws s3 cp s3://your-bucket/glove-wiki-gigaword-50.model .; fi
-        postBuild:
-          commands:
-            - echo "Setting up environment"
-            - python -c "import nltk; nltk.download('punkt')"
-      artifacts:
-        baseDirectory: /
-        files:
-          - '**/*'
-          - 'Procfile'
-          - 'requirements.txt'
-          - 'app.py'
-          - 'dynamodb.py'
-          - 'templates/**/*'
-          - 'static/**/*'
-          - 'glove-wiki-gigaword-50.model'
-        excludes:
-          - '.git/**/*'
-          - '.gitignore'
-          - '.env'
-          - '.env.*'
-          - 'README.md'
-          - 'amplify.yml'
-          - '__pycache__/**/*'
-          - '*.pyc'
-          - 'venv/**/*'
-          - '.venv/**/*'
-          - 'build/**/*'
-      cache:
-        paths:
-          - /root/.cache/pip
-          - glove-wiki-gigaword-50.model
-      appRoot: /
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Setting up frontend assets"
+    build:
+      commands:
+        - echo "Copying static files"
+  artifacts:
+    baseDirectory: static
+    files:
+      - '**/*'
+  cache:
+    paths: []
+  appRoot: /
+backend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing system dependencies"
+        - apt-get update
+        - apt-get install -y python3-dev
+    build:
+      commands:
+        - echo "Installing Python dependencies"
+        - pip install --upgrade pip
+        - pip install -r requirements.txt
+        # Download word embeddings model if not in repo
+        - if [ ! -f "glove-wiki-gigaword-50.model" ]; then aws s3 cp s3://your-bucket/glove-wiki-gigaword-50.model .; fi
+    postBuild:
+      commands:
+        - echo "Setting up environment"
+        - python -c "import nltk; nltk.download('punkt')"
+  artifacts:
+    baseDirectory: /
+    files:
+      - '**/*'
+      - 'Procfile'
+      - 'requirements.txt'
+      - 'app.py'
+      - 'dynamodb.py'
+      - 'templates/**/*'
+      - 'static/**/*'
+      - 'glove-wiki-gigaword-50.model'
+    excludes:
+      - '.git/**/*'
+      - '.gitignore'
+      - '.env'
+      - '.env.*'
+      - 'README.md'
+      - 'amplify.yml'
+      - '__pycache__/**/*'
+      - '*.pyc'
+      - 'venv/**/*'
+      - '.venv/**/*'
+      - 'build/**/*'
+  cache:
+    paths:
+      - /root/.cache/pip
+      - glove-wiki-gigaword-50.model
+  appRoot: /
