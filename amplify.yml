@@ -1,0 +1,33 @@
+version: 1
+applications:
+  - frontend:
+      phases:
+        build:
+          commands:
+            - echo "No frontend build required"
+      artifacts:
+        baseDirectory: /static
+        files:
+          - '**/*'
+    appRoot: /
+  - backend:
+      phases:
+        build:
+          commands:
+            - pip install --upgrade pip
+            - pip install -r requirements.txt
+            - pip install gunicorn
+      artifacts:
+        baseDirectory: /
+        files:
+          - '**/*'
+        excludes:
+          - .git/**/*
+          - .gitignore
+          - .env
+          - README.md
+          - amplify.yml
+      cache:
+        paths:
+          - /root/.cache/pip
+    appRoot: /
