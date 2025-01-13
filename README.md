@@ -50,6 +50,23 @@ Cognify is an engaging word guessing game where players compete against an AI to
 - `templates/index.html`: HTML template for the game's web interface.
 - `glove-wiki-gigaword-50.model`: Pre-trained GloVe word embedding model.
 
+## Technologies Used
+
+### Deployment Technologies
+
+- **Docker**: Used for containerizing the application, ensuring consistency across different environments.
+- **EC2**: Amazon Elastic Compute Cloud (EC2) instances are used to host the application.
+- **Route 53**: Amazon Route 53 is used for domain name system (DNS) web service.
+- **CloudFormation**: AWS CloudFormation is used to set up and manage the infrastructure as code.
+- **Elastic Container Registry (ECR)**: Amazon ECR is used to store, manage, and deploy Docker container images.
+- **Elastic Container Service (ECS)**: Amazon ECS is used to run and manage Docker containers on a cluster of EC2 instances.
+
+### Machine Learning Models
+
+- **Amazon Bedrock Models**:
+  - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
+  - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
+
 ## Usage Instructions
 
 ### Installation
