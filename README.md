@@ -67,6 +67,29 @@ Cognify is an engaging word guessing game where players compete against an AI to
   - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
   - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
+### Additional Technologies
+
+- **Flask**: A lightweight WSGI web application framework used for the backend.
+- **Gensim**: A Python library for topic modeling and document similarity analysis.
+- **scikit-learn**: A machine learning library for Python used for various machine learning tasks.
+- **python-dotenv**: Reads key-value pairs from a `.env` file and can set them as environment variables.
+- **Flask-SQLAlchemy**: Adds SQLAlchemy support to Flask applications.
+- **Flask-Cors**: A Flask extension for handling Cross Origin Resource Sharing (CORS), making cross-origin AJAX possible.
+- **gunicorn**: A Python WSGI HTTP Server for UNIX used to serve the Flask application.
+- **langchain-aws**: A library to integrate LangChain with AWS services.
+- **langchain**: A framework for developing applications powered by language models.
+- **gevent**: A coroutine-based Python networking library that uses greenlet to provide a high-level synchronous API.
+- **boto3**: The Amazon Web Services (AWS) SDK for Python, which allows Python developers to write software that makes use of Amazon services.
+- **bcrypt**: A library to hash and check passwords.
+- **python-jose**: A JavaScript Object Signing and Encryption (JOSE) implementation in Python.
+- **waitress**: A pure-Python WSGI server for serving Python web applications.
+
+### Machine Learning Models
+
+- **Amazon Bedrock Models**:
+  - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
+  - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
+
 ## Usage Instructions
 
 ### Installation
