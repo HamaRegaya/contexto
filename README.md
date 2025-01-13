@@ -67,6 +67,23 @@ Cognify is an engaging word guessing game where players compete against an AI to
   - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
   - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
+### Additional Technologies
+
+- **Flask**: A micro web framework used for building the backend of the application.
+- **Gensim**: A library for topic modeling and document similarity analysis.
+- **Scikit-learn**: A machine learning library used for various tasks including model training and evaluation.
+- **Python-dotenv**: A library to load environment variables from a `.env` file.
+- **Flask-SQLAlchemy**: An extension for Flask that adds support for SQLAlchemy, a SQL toolkit and Object-Relational Mapping (ORM) library.
+- **Flask-Cors**: A Flask extension for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible.
+- **Gunicorn**: A Python WSGI HTTP Server for UNIX, used to serve the Flask application.
+- **Langchain-aws**: A library for integrating Langchain with AWS services.
+- **Langchain**: A library for building applications with large language models.
+- **Gevent**: A coroutine-based Python networking library that uses greenlet to provide a high-level synchronous API on top of the libev or libuv event loop.
+- **Boto3**: The Amazon Web Services (AWS) SDK for Python, which allows Python developers to write software that makes use of Amazon services.
+- **Bcrypt**: A library to hash passwords.
+- **Python-jose**: A JavaScript Object Signing and Encryption (JOSE) implementation in Python.
+- **Waitress**: A pure-Python WSGI server for serving Python web applications.
+
 ## Usage Instructions
 
 ### Installation
