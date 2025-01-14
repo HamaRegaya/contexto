@@ -67,13 +67,13 @@ Cognify is an engaging word guessing game where players compete against an AI to
 - **Elastic Container Service (ECS)**: Amazon ECS is used to run and manage Docker containers on a cluster of EC2 instances.
 
 ### Machine Learning Models
-![Alt text](https://i.ytimg.com/vi/_vdK5PgcNvc/maxresdefault.jpg)
+![Alt text]([https://i.ytimg.com/vi/_vdK5PgcNvc/maxresdefault.jpg](https://miro.medium.com/v2/resize:fit:800/0*Pt35xx4zGH-4SQmF.png))
 - **Amazon Bedrock Models**:
   - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
   - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
 ### Additional Technologies
-![Alt text](https://miro.medium.com/v2/resize:fit:1400/1*KN1za-oAjX5r5eIiadhdEQ.png)
+![Alt text](https://devio2023-media.developers.io/wp-content/uploads/2024/04/langchain-bedrock-1200x630-1.png)
 - **Flask**: A lightweight WSGI web application framework used for the backend.
 - **Gensim**: A Python library for topic modeling and document similarity analysis.
 - **scikit-learn**: A machine learning library for Python used for various machine learning tasks.
