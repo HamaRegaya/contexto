@@ -75,7 +75,7 @@ Cognify is an engaging word guessing game where players compete against an AI to
   - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
 ### Additional Technologies
-![Alt text](https://devio2023-media.developers.io/wp-content/uploads/2024/04/langchain-bedrock-1200x630-1.png)
+![Alt text](https://www.cxtoday.com/wp-content/uploads/2023/07/agents-for-amazon-bedrock.png)
 - **Flask**: A lightweight WSGI web application framework used for the backend.
 - **Gensim**: A Python library for topic modeling and document similarity analysis.
 - **scikit-learn**: A machine learning library for Python used for various machine learning tasks.
