@@ -1,8 +1,11 @@
+![Alt text](https://imgur.com/pmymp4e.png)
+
 # Cognify: Human vs AI Word Guessing Game
 
 ![Alt text](https://i.imgur.com/8TqyO0C.png)
 
 Cognify is an engaging word guessing game where players compete against an AI to guess a target word. The game uses GloVe word embeddings to calculate the similarity between words, providing feedback on how close each guess is to the target word. The game features a Flask-based backend and a JavaScript frontend, offering an interactive and educational experience.
+![Alt text](https://imgur.com/mH1OXts.png)
 
 ## Repository Structure
 
@@ -53,7 +56,7 @@ Cognify is an engaging word guessing game where players compete against an AI to
 - `glove-wiki-gigaword-50.model`: Pre-trained GloVe word embedding model.
 
 ## Technologies Used
-
+![Alt text](https://learnersmind.com/storage/resources/cD7xI0qVAestQGqFSSzawJZoLS5ZOvRYQcQtfOsE.png)
 ### Deployment Technologies
 
 - **Docker**: Used for containerizing the application, ensuring consistency across different environments.
@@ -64,13 +67,13 @@ Cognify is an engaging word guessing game where players compete against an AI to
 - **Elastic Container Service (ECS)**: Amazon ECS is used to run and manage Docker containers on a cluster of EC2 instances.
 
 ### Machine Learning Models
-
+![Alt text](https://i.ytimg.com/vi/_vdK5PgcNvc/maxresdefault.jpg)
 - **Amazon Bedrock Models**:
   - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
   - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
 ### Additional Technologies
-
+![Alt text](https://miro.medium.com/v2/resize:fit:1400/1*KN1za-oAjX5r5eIiadhdEQ.png)
 - **Flask**: A lightweight WSGI web application framework used for the backend.
 - **Gensim**: A Python library for topic modeling and document similarity analysis.
 - **scikit-learn**: A machine learning library for Python used for various machine learning tasks.
@@ -86,11 +89,7 @@ Cognify is an engaging word guessing game where players compete against an AI to
 - **python-jose**: A JavaScript Object Signing and Encryption (JOSE) implementation in Python.
 - **waitress**: A pure-Python WSGI server for serving Python web applications.
 
-### Machine Learning Models
 
-- **Amazon Bedrock Models**:
-  - **LLM**: The game uses Amazon Bedrock models for large language models (LLM). Specifically, the `mistral.mistral-7b-instruct-v0:2` model is used.
-  - **Embeddings**: For generating text embeddings, the `amazon.titan-embed-text-v2:0` model is used.
 
 ## Usage Instructions
 
