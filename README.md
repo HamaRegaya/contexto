@@ -1,4 +1,4 @@
-![Alt text](https://imgur.com/pmymp4e.png)
+![Alt text](https://imgur.com/ox8zuD0.png)
 
 # Cognify: Human vs AI Word Guessing Game
 
