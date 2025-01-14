@@ -1,6 +1,6 @@
 # Cognify: Human vs AI Word Guessing Game
 
-https://imgur.com/8TqyO0C
+![Alt text](https://i.imgur.com/8TqyO0C.png)
 
 Cognify is an engaging word guessing game where players compete against an AI to guess a target word. The game uses GloVe word embeddings to calculate the similarity between words, providing feedback on how close each guess is to the target word. The game features a Flask-based backend and a JavaScript frontend, offering an interactive and educational experience.
 
